@@ -2,8 +2,27 @@ package starlarkassert
 
 import (
 	"testing"
+
+	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 func TestRunTests(t *testing.T) {
-	RunTests(t, "testdata/*.star", nil, nil)
+	globals := starlark.StringDict{
+		"struct": starlark.NewBuiltin("struct", starlarkstruct.Make),
+	}
+	threadOpt := func(thread *starlark.Thread) {
+		originalLoad := thread.Load
+		thread.Load = func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
+			switch module {
+			case "test_load.star":
+				return starlark.StringDict{
+					"greet": starlark.String("world"),
+				}, nil
+			}
+			return originalLoad(thread, module)
+		}
+	}
+
+	RunTests(t, "testdata/*.star", globals, threadOpt)
 }

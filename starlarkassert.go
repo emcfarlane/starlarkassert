@@ -129,15 +129,7 @@ func freeze(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs
 	return args[0], nil
 }
 
-type Runner func(thread *starlark.Thread, test func())
-
-func (r Runner) run(thread *starlark.Thread, test func()) {
-	if r != nil {
-		r(thread, test)
-		return
-	}
-	test()
-}
+type ThreadOption func(thread *starlark.Thread)
 
 // Testing is passed to starlark functions.
 type Testing struct {
@@ -201,7 +193,7 @@ func testingRun(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 
 // RunTests runs starlark files as a test suite.
 // Each function with the prefix "test_" is called in parallel as a t.Run func.
-func RunTests(t *testing.T, pattern string, globals starlark.StringDict, runner Runner) {
+func RunTests(t *testing.T, pattern string, globals starlark.StringDict, threadOpt ThreadOption) {
 	files, err := filepath.Glob(pattern)
 	if err != nil {
 		t.Fatal(err)
@@ -258,36 +250,36 @@ func RunTests(t *testing.T, pattern string, globals starlark.StringDict, runner 
 		}
 
 		thread := newThread(t, filename)
-		test := func() {
-			values, err := starlark.ExecFile(thread, filename, src, globals)
-			if err != nil {
-				errorf(t, filename, err)
-			}
-
-			for key, val := range values {
-				if !strings.HasPrefix(key, "test_") {
-					continue // ignore
-				}
-				if _, ok := val.(starlark.Callable); !ok {
-					continue // ignore non callable
-				}
-
-				key, val := key, val
-				t.Run(key, func(t *testing.T) {
-					t.Parallel()
-
-					tt := &Testing{t: t}
-					thread := newThread(t, filename+"/"+key)
-					test := func() {
-						if _, err := starlark.Call(thread, val, starlark.Tuple{tt}, nil); err != nil {
-							errorf(t, filename, err)
-						}
-					}
-					runner.run(thread, test)
-				})
-			}
-
+		if threadOpt != nil {
+			threadOpt(thread)
 		}
-		runner.run(thread, test)
+
+		values, err := starlark.ExecFile(thread, filename, src, globals)
+		if err != nil {
+			errorf(t, filename, err)
+		}
+
+		for key, val := range values {
+			if !strings.HasPrefix(key, "test_") {
+				continue // ignore
+			}
+			if _, ok := val.(starlark.Callable); !ok {
+				continue // ignore non callable
+			}
+
+			key, val := key, val
+			t.Run(key, func(t *testing.T) {
+				t.Parallel()
+
+				tt := &Testing{t: t}
+				thread := newThread(t, filename+"/"+key)
+				if threadOpt != nil {
+					threadOpt(thread)
+				}
+				if _, err := starlark.Call(thread, val, starlark.Tuple{tt}, nil); err != nil {
+					errorf(t, filename, err)
+				}
+			})
+		}
 	}
 }

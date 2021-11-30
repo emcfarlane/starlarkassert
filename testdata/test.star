@@ -14,3 +14,12 @@ def test_array(t):
 def test_t_run(t):
     for name in ["harry", "potter"]:
         t.run(name, lambda t: print(name))
+
+def test_globals(t):
+    struct(name = "hello")
+
+load("test_load.star", "greet")
+
+def test_load(t):
+    assert.eq(greet, "world")
+    print("hello,", greet)
