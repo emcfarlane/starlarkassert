@@ -11,7 +11,7 @@ func TestRunTests(t *testing.T) {
 	globals := starlark.StringDict{
 		"struct": starlark.NewBuiltin("struct", starlarkstruct.Make),
 	}
-	threadOpt := func(thread *starlark.Thread) {
+	runner := func(thread *starlark.Thread, handler func() error) error {
 		originalLoad := thread.Load
 		thread.Load = func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
 			switch module {
@@ -22,7 +22,8 @@ func TestRunTests(t *testing.T) {
 			}
 			return originalLoad(thread, module)
 		}
+		return handler()
 	}
 
-	RunTests(t, "testdata/*.star", globals, threadOpt)
+	RunTests(t, "testdata/*.star", globals, runner)
 }

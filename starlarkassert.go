@@ -129,7 +129,14 @@ func freeze(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs
 	return args[0], nil
 }
 
-type ThreadOption func(thread *starlark.Thread)
+type Runner func(thread *starlark.Thread, handler func() error) error
+
+func (fn Runner) run(thread *starlark.Thread, handler func() error) error {
+	if fn != nil {
+		return fn(thread, handler)
+	}
+	return handler()
+}
 
 // Testing is passed to starlark functions.
 type Testing struct {
@@ -174,7 +181,7 @@ func testingRun(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		fn   starlark.Callable
 	)
 	if err := starlark.UnpackArgs(
-		"blob.bucket.write_all", args, kwargs, "name", &name, "fn", &fn,
+		"testing.run", args, kwargs, "name", &name, "fn", &fn,
 	); err != nil {
 		return nil, err
 	}
@@ -193,7 +200,7 @@ func testingRun(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 
 // RunTests runs starlark files as a test suite.
 // Each function with the prefix "test_" is called in parallel as a t.Run func.
-func RunTests(t *testing.T, pattern string, globals starlark.StringDict, threadOpt ThreadOption) {
+func RunTests(t *testing.T, pattern string, globals starlark.StringDict, runner Runner) {
 	files, err := filepath.Glob(pattern)
 	if err != nil {
 		t.Fatal(err)
@@ -250,13 +257,14 @@ func RunTests(t *testing.T, pattern string, globals starlark.StringDict, threadO
 		}
 
 		thread := newThread(t, filename)
-		if threadOpt != nil {
-			threadOpt(thread)
+		var values starlark.StringDict
+		handler := func() (err error) {
+			values, err = starlark.ExecFile(thread, filename, src, globals)
+			return err
 		}
-
-		values, err := starlark.ExecFile(thread, filename, src, globals)
-		if err != nil {
+		if err := runner.run(thread, handler); err != nil {
 			errorf(t, filename, err)
+			continue
 		}
 
 		for key, val := range values {
@@ -273,10 +281,11 @@ func RunTests(t *testing.T, pattern string, globals starlark.StringDict, threadO
 
 				tt := &Testing{t: t}
 				thread := newThread(t, filename+"/"+key)
-				if threadOpt != nil {
-					threadOpt(thread)
+				handler := func() error {
+					_, err := starlark.Call(thread, val, starlark.Tuple{tt}, nil)
+					return err
 				}
-				if _, err := starlark.Call(thread, val, starlark.Tuple{tt}, nil); err != nil {
+				if err := runner.run(thread, handler); err != nil {
 					errorf(t, filename, err)
 				}
 			})
