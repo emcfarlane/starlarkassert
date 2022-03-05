@@ -3,7 +3,6 @@
 package starlarkassert
 
 import (
-	_ "embed"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -14,38 +13,44 @@ import (
 	"go.starlark.net/starlark"
 )
 
-// Testing is passed to starlark functions.
-type Testing struct {
+// Test is passed to starlark testing functions.
+// Interface is based on Go's *testing.T.
+//
+// 	def test_foo(t):
+// 	    ...check...
+//
+type Test struct {
 	t      *testing.T
 	frozen bool
 }
 
-func NewTesting(t *testing.T) *Testing {
-	return &Testing{t: t}
+func NewTest(t *testing.T) *Test {
+	return &Test{t: t}
 }
 
-func (t *Testing) String() string        { return "<testing>" }
-func (t *Testing) Type() string          { return "testing.t" }
-func (t *Testing) Freeze()               { t.frozen = true }
-func (t *Testing) Truth() starlark.Bool  { return t.t != nil }
-func (t *Testing) Hash() (uint32, error) { return 0, fmt.Errorf("unhashable type: %s", t.Type()) }
+func (t *Test) String() string        { return "<test>" }
+func (t *Test) Type() string          { return "test" }
+func (t *Test) Freeze()               { t.frozen = true }
+func (t *Test) Truth() starlark.Bool  { return t.t != nil }
+func (t *Test) Hash() (uint32, error) { return 0, fmt.Errorf("unhashable type: %s", t.Type()) }
 
-var testingMethods = map[string]*starlark.Builtin{
-	"run":  starlark.NewBuiltin("testing.t.run", testingRun),
-	"skip": starlark.NewBuiltin("testing.t.skip", testingSkip),
-	"fail": starlark.NewBuiltin("testing.t.fail", testingFail),
+type testAttr func(t *Test) starlark.Value
+
+var testAttrs = map[string]testAttr{
+	"run":  func(t *Test) starlark.Value { return method{t, "run", t.run} },
+	"skip": func(t *Test) starlark.Value { return method{t, "skip", t.skip} },
+	"fail": func(t *Test) starlark.Value { return method{t, "fail", t.fail} },
 }
 
-func (t *Testing) Attr(name string) (starlark.Value, error) {
-	m := testingMethods[name]
-	if m == nil {
-		return nil, nil
+func (t *Test) Attr(name string) (starlark.Value, error) {
+	if m := testAttrs[name]; m != nil {
+		return m(t), nil
 	}
-	return m.BindReceiver(t), nil
+	return nil, nil
 }
-func (t *Testing) AttrNames() []string {
-	names := make([]string, 0, len(testingMethods))
-	for name := range testingMethods {
+func (t *Test) AttrNames() []string {
+	names := make([]string, 0, len(testAttrs))
+	for name := range testAttrs {
 		names = append(names, name)
 	}
 	sort.Strings(names)
@@ -63,8 +68,7 @@ func wrapTLog(t *testing.T, thread *starlark.Thread) func() {
 	}
 }
 
-func testingRun(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	t := b.Receiver().(*Testing)
+func (t *Test) run(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if t.frozen {
 		return nil, fmt.Errorf("testing.t: frozen")
 	}
@@ -84,21 +88,19 @@ func testingRun(thread *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		err error
 	)
 	t.t.Run(name, func(t *testing.T) {
-		tval := NewTesting(t)
+		tval := NewTest(t)
 		defer wrapTLog(t, thread)()
 		val, err = starlark.Call(thread, fn, starlark.Tuple{tval}, nil)
 	})
 	return val, err
 }
 
-func testingSkip(_ *starlark.Thread, b *starlark.Builtin, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
-	t := b.Receiver().(*Testing)
+func (t *Test) skip(_ *starlark.Thread, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
 	t.t.Skip() // TODO: printing
 	return starlark.None, nil
 }
 
-func testingFail(_ *starlark.Thread, b *starlark.Builtin, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
-	t := b.Receiver().(*Testing)
+func (t *Test) fail(_ *starlark.Thread, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
 	t.t.Fail()
 	return starlark.None, nil
 }
@@ -188,8 +190,8 @@ func TestFile(t *testing.T, filename string, src interface{}, globals starlark.S
 		t.Run(key, func(t *testing.T) {
 			t.Parallel()
 
-			tt := NewTesting(t)
-			name := path.Join(filename + "/" + key)
+			tt := NewTest(t)
+			name := path.Join(filename, key)
 			thread, cleanup := newThread(t, name, opts)
 			defer cleanup()
 
@@ -205,10 +207,10 @@ func TestFile(t *testing.T, filename string, src interface{}, globals starlark.S
 // RunTests is a local test suite runner. Each file in the pattern glob is ran.
 // To use add it to a Test function:
 //
-// func TestRun(t *testing.T) {
-// 	globals := starlark.StringDict{}
-// 	RunTests(t, "testdata/*_test.star", globals)
-// }
+// 	func TestStarlark(t *testing.T) {
+// 		globals := starlark.StringDict{}
+// 		RunTests(t, "testdata/*_test.star", globals)
+// 	}
 //
 func RunTests(t *testing.T, pattern string, globals starlark.StringDict, opts ...TestOption) {
 	t.Helper()
