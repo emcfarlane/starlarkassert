@@ -18,6 +18,11 @@ def test_t_run(t):
 def test_globals(t):
     struct(name = "hello")
 
+a_list = [1, 2, 3]
+
+def test_globals_frozen(t):
+    assert.fails(lambda: a_list.append(4), "frozen list")
+
 load("test_load.star", "greet")
 
 def test_load(t):
