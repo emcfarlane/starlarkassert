@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -55,11 +57,22 @@ func (t *Test) AttrNames() []string {
 	return names
 }
 
-func wrapTLog(t *testing.T, thread *starlark.Thread) func() {
+func wrapLog(t testing.TB, thread *starlark.Thread) func() {
+	_, origFile, origLine, _ := runtime.Caller(0)
+
 	reporter := GetReporter(thread)
 	SetReporter(thread, t)
 	print := thread.Print
-	thread.Print = func(_ *starlark.Thread, s string) { t.Log(s) }
+	thread.Print = func(thread *starlark.Thread, s string) {
+		s = thread.Name + ": " + s
+
+		// Overwrite go's filename in log.
+		erase := strings.Repeat("\b", len(path.Base(origFile))+len(strconv.Itoa(origLine))+3)
+		if diff := len(erase) - len(s); diff > 0 {
+			s += strings.Repeat(" ", diff)
+		}
+		t.Logf("%s%s", erase, s)
+	}
 	return func() {
 		SetReporter(thread, reporter)
 		thread.Print = print
@@ -86,8 +99,9 @@ func (t *Test) run(thread *starlark.Thread, args starlark.Tuple, kwargs []starla
 		err error
 	)
 	t.t.Run(name, func(t *testing.T) {
+		defer wrapLog(t, thread)()
+
 		tval := NewTest(t)
-		defer wrapTLog(t, thread)()
 		val, err = starlark.Call(thread, fn, starlark.Tuple{tval}, nil)
 	})
 	return val, err
@@ -141,9 +155,7 @@ func newThread(t testing.TB, name string, opts []TestOption) (*starlark.Thread, 
 	}
 
 	SetReporter(thread, t)
-	thread.Print = func(_ *starlark.Thread, msg string) {
-		t.Log(msg)
-	}
+	cleanups = append(cleanups, wrapLog(t, thread))
 	load := thread.Load
 	thread.Load = func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
 		if module == "assert.star" {
@@ -189,7 +201,7 @@ func TestFile(t *testing.T, filename string, src interface{}, globals starlark.S
 			t.Parallel()
 
 			tt := NewTest(t)
-			name := path.Join(filename, key)
+			name := thread.Name
 			thread, cleanup := newThread(t, name, opts)
 			defer cleanup()
 

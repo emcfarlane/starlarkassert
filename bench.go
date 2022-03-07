@@ -2,7 +2,6 @@ package starlarkassert
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -113,7 +112,7 @@ func BenchFile(b *testing.B, filename string, src interface{}, globals starlark.
 		b.Run(key, func(b *testing.B) {
 
 			bb := NewBench(b)
-			name := path.Join(filename, key)
+			name := thread.Name
 			thread, cleanup := newThread(b, name, opts)
 			defer cleanup()
 
