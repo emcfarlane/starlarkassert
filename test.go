@@ -64,7 +64,8 @@ func wrapLog(t testing.TB, thread *starlark.Thread) func() {
 	SetReporter(thread, t)
 	print := thread.Print
 	thread.Print = func(thread *starlark.Thread, s string) {
-		s = thread.Name + ": " + s
+		cf := thread.CallFrame(1)
+		s = fmt.Sprintf("%s:%d:%d %s", thread.Name, cf.Pos.Line, cf.Pos.Col, s)
 
 		// Overwrite go's filename in log.
 		erase := strings.Repeat("\b", len(path.Base(origFile))+len(strconv.Itoa(origLine))+3)
