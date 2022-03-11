@@ -176,12 +176,28 @@ func newThread(t testing.TB, name string, opts []TestOption) (*starlark.Thread, 
 
 type TestOption func(t testing.TB, thread *starlark.Thread) func()
 
+func WithModule(name string, module starlark.StringDict) TestOption {
+	return func(_ testing.TB, thread *starlark.Thread) func() {
+		load := thread.Load
+		thread.Load = func(thread *starlark.Thread, loadName string) (starlark.StringDict, error) {
+			if loadName == name {
+				return module, nil
+			}
+			if load != nil {
+				return load(thread, loadName)
+			}
+			return nil, nil
+		}
+		return nil
+	}
+}
+
 // TestFile runs each function with the prefix "test_" in parallel as a t.Run func.
 func TestFile(t *testing.T, filename string, src interface{}, globals starlark.StringDict, opts ...TestOption) {
 	t.Helper()
 
 	thread, cleanup := newThread(t, filename, opts)
-	defer cleanup()
+	t.Cleanup(cleanup)
 
 	values, err := starlark.ExecFile(thread, filename, src, globals)
 	if err != nil {

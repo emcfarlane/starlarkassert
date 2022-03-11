@@ -92,7 +92,7 @@ func BenchFile(b *testing.B, filename string, src interface{}, globals starlark.
 	b.Helper()
 
 	thread, cleanup := newThread(b, filename, opts)
-	defer cleanup()
+	b.Cleanup(cleanup)
 
 	values, err := starlark.ExecFile(thread, filename, src, globals)
 	if err != nil {
