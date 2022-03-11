@@ -37,9 +37,9 @@ func (t *Test) Hash() (uint32, error) { return 0, fmt.Errorf("unhashable type: %
 type testAttr func(t *Test) starlark.Value
 
 var testAttrs = map[string]testAttr{
+	"fail": func(t *Test) starlark.Value { return method{t, "fail", t.fail} },
 	"run":  func(t *Test) starlark.Value { return method{t, "run", t.run} },
 	"skip": func(t *Test) starlark.Value { return method{t, "skip", t.skip} },
-	"fail": func(t *Test) starlark.Value { return method{t, "fail", t.fail} },
 }
 
 func (t *Test) Attr(name string) (starlark.Value, error) {
@@ -104,8 +104,14 @@ func (t *Test) run(thread *starlark.Thread, args starlark.Tuple, kwargs []starla
 
 		tval := NewTest(t)
 		val, err = starlark.Call(thread, fn, starlark.Tuple{tval}, nil)
+		if err != nil {
+			t.Error(err)
+		}
 	})
-	return val, err
+	if err != nil {
+		return starlark.None, nil
+	}
+	return val, nil
 }
 
 func (t *Test) skip(_ *starlark.Thread, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
