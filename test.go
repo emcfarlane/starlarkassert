@@ -180,6 +180,7 @@ func newThread(t testing.TB, name string, opts []TestOption) (*starlark.Thread, 
 	}
 }
 
+// TestOption is called on setup with an optional cleanup func called on teardown.
 type TestOption func(t testing.TB, thread *starlark.Thread) func()
 
 func WithModule(name string, module starlark.StringDict) TestOption {
