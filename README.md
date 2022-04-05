@@ -1,6 +1,8 @@
 # starlarkassert
 
-Fork of the original, embeds assert function and includes integrations for go's testing.T.
+[![Go Reference](https://pkg.go.dev/badge/github.com/emcfarlane/starlarkassert.svg)](https://pkg.go.dev/github.com/emcfarlane/starlarkassert)
+
+Superset of the original starlarktest package, includes integrations for go's testing.T.
 
 ```python
 load("assert.star", "assert")
@@ -16,4 +18,14 @@ def test_subtest(t):
     for name in ["test", "names"]:
         t.run(name, lambda t: print(name))
 
+```
+
+Integrate starlark Scripts with go's test framework:
+```go
+func TestScript(t *testing.T) {
+	globals := starlark.StringDict{
+		"struct": starlark.NewBuiltin("struct", starlarkstruct.Make),
+	}
+	RunTests(t, "testdata/*.star", globals)
+}
 ```
