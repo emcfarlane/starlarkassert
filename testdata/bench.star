@@ -1,6 +1,6 @@
 # Benchmark of Starlark 'assert' extension.
 
-def bench_method(b):
+def bench_append(b):
     a = []
     b.restart()
     for i in range(b.n):

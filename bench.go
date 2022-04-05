@@ -45,24 +45,6 @@ func (*Bench) AttrNames() []string {
 	return names
 }
 
-type method struct {
-	recv starlark.Value
-	name string
-	fn   func(*starlark.Thread, starlark.Tuple, []starlark.Tuple) (starlark.Value, error)
-}
-
-func (m method) Name() string          { return m.name }
-func (m method) Freeze()               {}
-func (m method) Hash() (uint32, error) { return 0, nil }
-func (m method) String() string {
-	return fmt.Sprintf("<builtin_method %s of %s value>", m.Name(), m.recv.Type())
-}
-func (m method) Type() string         { return "builtin_method" }
-func (m method) Truth() starlark.Bool { return true }
-func (m method) CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return m.fn(thread, args, kwargs)
-}
-
 type benchAttr func(b *Bench) starlark.Value
 
 var benchAttrs = map[string]benchAttr{
@@ -70,6 +52,19 @@ var benchAttrs = map[string]benchAttr{
 	"start":   func(b *Bench) starlark.Value { return method{b, "start", b.start} },
 	"stop":    func(b *Bench) starlark.Value { return method{b, "stop", b.stop} },
 	"n":       func(b *Bench) starlark.Value { return starlark.MakeInt(b.b.N) },
+
+	"error":  func(b *Bench) starlark.Value { return tmethod{b, "error", b.b, terror} },
+	"fail":   func(b *Bench) starlark.Value { return tmethod{b, "fail", b.b, tfail} },
+	"fatal":  func(b *Bench) starlark.Value { return tmethod{b, "fatal", b.b, tfatal} },
+	"freeze": func(b *Bench) starlark.Value { return method{b, "freeze", freeze} },
+	"skip":   func(b *Bench) starlark.Value { return tmethod{b, "skip", b.b, tskip} },
+
+	"eq":       func(b *Bench) starlark.Value { return tmethod{b, "eq", b.b, teq} },
+	"ne":       func(b *Bench) starlark.Value { return tmethod{b, "ne", b.b, tne} },
+	"true":     func(b *Bench) starlark.Value { return tmethod{b, "true", b.b, ttrue} },
+	"lt":       func(b *Bench) starlark.Value { return tmethod{b, "lt", b.b, tlt} },
+	"contains": func(b *Bench) starlark.Value { return tmethod{b, "contains", b.b, tcontains} },
+	"fails":    func(b *Bench) starlark.Value { return tmethod{b, "fails", b.b, tfails} },
 }
 
 func (b *Bench) restart(_ *starlark.Thread, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {

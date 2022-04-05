@@ -1,10 +1,7 @@
 # Tests of Starlark 'assert' extension.
 
-load("assert.star", "assert")
-
-assert.true(True)
-
 def test_here(t):
+    t.true(True)
     print("here")
 
 def test_array(t):
@@ -21,10 +18,10 @@ def test_globals(t):
 a_list = [1, 2, 3]
 
 def test_globals_frozen(t):
-    assert.fails(lambda: a_list.append(4), "frozen list")
+    t.fails(lambda: a_list.append(4), "frozen list")
 
 load("test_load.star", "greet")
 
 def test_load(t):
-    assert.eq(greet, "world")
+    t.eq(greet, "world")
     print("hello,", greet)
