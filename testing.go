@@ -187,6 +187,14 @@ func newThread(t testing.TB, name string, opts []TestOption) (*starlark.Thread, 
 // TestOption is called on setup with an optional cleanup func called on teardown.
 type TestOption func(t testing.TB, thread *starlark.Thread) func()
 
+func WithLoad(load func(thread *starlark.Thread, name string) (starlark.StringDict, error)) TestOption {
+	return func(_ testing.TB, thread *starlark.Thread) func() {
+		oldLoad := thread.Load
+		thread.Load = load
+		return func() { thread.Load = oldLoad }
+	}
+}
+
 func WithModule(name string, module starlark.StringDict) TestOption {
 	return func(_ testing.TB, thread *starlark.Thread) func() {
 		load := thread.Load
