@@ -143,13 +143,13 @@ func tne(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error
 
 func ttrue(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var (
-		cond bool
+		cond Value
 		msg  string
 	)
 	if err := UnpackArgs("true", args, kwargs, "cond", &cond, "msg?", &msg); err != nil {
 		return nil, err
 	}
-	if !cond {
+	if !bool(cond.Truth()) {
 		t.Error(msg)
 	}
 	return None, nil
