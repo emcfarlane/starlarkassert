@@ -53,7 +53,7 @@ func pprint(thread *Thread, args Tuple, kwargs []Tuple) (string, error) {
 	var s string
 
 	oldPrint := thread.Print
-	thread.Print = func(thread *Thread, msg string) { s = msg }
+	thread.Print = func(_ *Thread, msg string) { s = msg }
 	defer func() { thread.Print = oldPrint }()
 
 	_, err := print_.CallInternal(thread, args, kwargs)
@@ -61,7 +61,7 @@ func pprint(thread *Thread, args Tuple, kwargs []Tuple) (string, error) {
 }
 
 // freeze(x) freezes its operand.
-func freeze(thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func freeze(_ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	if len(kwargs) > 0 {
 		return nil, fmt.Errorf("freeze does not accept keyword arguments")
 	}
@@ -78,7 +78,7 @@ func terror(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, er
 		return nil, err
 	}
 	t.Error(s)
-	return None, nil
+	return True, nil
 }
 
 func tskip(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
@@ -87,7 +87,7 @@ func tskip(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, err
 		return nil, err
 	}
 	t.Skip(s)
-	return None, nil
+	return True, nil
 }
 
 func tfatal(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
@@ -96,18 +96,18 @@ func tfatal(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, er
 		return nil, err
 	}
 	t.Fatal(s)
-	return None, nil
+	return True, nil
 }
 
-func tfail(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func tfail(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	if len(args) > 0 || len(kwargs) > 0 {
 		return nil, fmt.Errorf("fail does not accept arguments")
 	}
 	t.Fail()
-	return None, nil
+	return True, nil
 }
 
-func teq(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func teq(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var x, y Value
 	if err := UnpackArgs("eq", args, kwargs, "x", &x, "y", &y); err != nil {
 		return nil, err
@@ -117,14 +117,22 @@ func teq(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error
 		return nil, err
 	}
 	if !ok {
-		t.Errorf(
-			"%s != %s", String(x.String()), String(y.String()),
-		)
+		if v, diffOk := x.(Diffable); diffOk {
+			str, err := v.DiffSameType(y)
+			if err != nil {
+				return True, err
+			}
+			t.Error(str)
+		} else {
+			t.Errorf(
+				"%s != %s", String(x.String()), String(y.String()),
+			)
+		}
 	}
-	return None, nil
+	return Bool(ok), nil
 }
 
-func tne(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func tne(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var x, y Value
 	if err := UnpackArgs("ne", args, kwargs, "x", &x, "y", &y); err != nil {
 		return nil, err
@@ -138,10 +146,10 @@ func tne(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error
 			"%s == %s", String(x.String()), String(y.String()),
 		)
 	}
-	return None, nil
+	return Bool(!ok), nil
 }
 
-func ttrue(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func ttrue(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var (
 		cond Value
 		msg  string
@@ -152,10 +160,10 @@ func ttrue(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, err
 	if !bool(cond.Truth()) {
 		t.Error(msg)
 	}
-	return None, nil
+	return cond.Truth(), nil
 }
 
-func tlt(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func tlt(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var x, y Value
 	if err := UnpackArgs("lt", args, kwargs, "x", &x, "y", &y); err != nil {
 		return nil, err
@@ -167,10 +175,10 @@ func tlt(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error
 	if !ok {
 		t.Errorf("%s is not less than %s", x, y)
 	}
-	return None, nil
+	return Bool(ok), nil
 }
 
-func tcontains(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func tcontains(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var (
 		x Iterable
 		y Value
@@ -188,11 +196,11 @@ func tcontains(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value,
 			return nil, err
 		}
 		if ok {
-			return None, nil
+			return True, nil
 		}
 	}
 	t.Errorf("%s does not contain %s", x, y)
-	return None, nil
+	return False, nil
 }
 
 func tfails(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
@@ -207,16 +215,16 @@ func tfails(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, er
 	_, err := f.CallInternal(thread, nil, nil)
 	if err == nil {
 		t.Errorf("evaluation succeeded unexpectedly (want error matching %s)", String(pattern))
-	} else {
-		str := err.Error()
-		ok, err := regexp.MatchString(pattern, str)
-		if err != nil {
-			return nil, fmt.Errorf("matches: %s", err)
-		}
-
-		if !ok {
-			t.Errorf("regular expression (%s) did not match error (%s)", pattern, str)
-		}
+		return False, nil
 	}
-	return None, nil
+	str := err.Error()
+	ok, err := regexp.MatchString(pattern, str)
+	if err != nil {
+		return nil, fmt.Errorf("matches: %s", err)
+	}
+
+	if !ok {
+		t.Errorf("regular expression (%s) did not match error (%s)", pattern, str)
+	}
+	return Bool(ok), nil
 }

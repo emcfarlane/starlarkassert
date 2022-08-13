@@ -59,12 +59,15 @@ var benchAttrs = map[string]benchAttr{
 	"freeze": func(b *Bench) starlark.Value { return method{b, "freeze", freeze} },
 	"skip":   func(b *Bench) starlark.Value { return tmethod{b, "skip", b.b, tskip} },
 
-	"eq":       func(b *Bench) starlark.Value { return tmethod{b, "eq", b.b, teq} },
-	"ne":       func(b *Bench) starlark.Value { return tmethod{b, "ne", b.b, tne} },
-	"true":     func(b *Bench) starlark.Value { return tmethod{b, "true", b.b, ttrue} },
-	"lt":       func(b *Bench) starlark.Value { return tmethod{b, "lt", b.b, tlt} },
-	"contains": func(b *Bench) starlark.Value { return tmethod{b, "contains", b.b, tcontains} },
-	"fails":    func(b *Bench) starlark.Value { return tmethod{b, "fails", b.b, tfails} },
+	"eq":        func(b *Bench) starlark.Value { return tmethod{b, "eq", b.b, teq} },
+	"equal":     func(b *Bench) starlark.Value { return tmethod{b, "eq", b.b, teq} },
+	"ne":        func(b *Bench) starlark.Value { return tmethod{b, "ne", b.b, tne} },
+	"not_equal": func(b *Bench) starlark.Value { return tmethod{b, "ne", b.b, tne} },
+	"true":      func(b *Bench) starlark.Value { return tmethod{b, "true", b.b, ttrue} },
+	"lt":        func(b *Bench) starlark.Value { return tmethod{b, "lt", b.b, tlt} },
+	"less_than": func(b *Bench) starlark.Value { return tmethod{b, "lt", b.b, tlt} },
+	"contains":  func(b *Bench) starlark.Value { return tmethod{b, "contains", b.b, tcontains} },
+	"fails":     func(b *Bench) starlark.Value { return tmethod{b, "fails", b.b, tfails} },
 }
 
 func (b *Bench) restart(_ *starlark.Thread, _ starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
