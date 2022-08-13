@@ -124,9 +124,9 @@ func BenchFile(b *testing.B, filename string, src interface{}, globals starlark.
 // RunBenches is a local bench suite runner. Each file in the pattern glob is ran.
 // To use add it to a Benchmark function:
 //
-// 	func BenchmarkStarlark(t *testing.T) {
+// 	func BenchmarkStarlark(b *testing.B) {
 // 		globals := starlark.StringDict{}
-// 		RunBenches(t, "testdata/*_bench.star", globals)
+// 		RunBenches(b, "testdata/*.star", globals)
 // 	}
 //
 func RunBenches(b *testing.B, pattern string, globals starlark.StringDict, opts ...TestOption) {
