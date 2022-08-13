@@ -43,7 +43,7 @@ func TestScript(t *testing.T) {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| msg | any | Message. |
+| msg | string | Message. |
 
 ### test·fail
 
@@ -55,23 +55,24 @@ func TestScript(t *testing.T) {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| msg | any | Message. |
+| msg | value | Message. |
 
 ### test·freeze
 
-`t.freeze(val)` freze .
+`t.freeze(val)` the value, for testing freeze behaviour.
+All mutations after freeze should fail.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| val | any | Value to freeze. |
+| val | value | Value to freeze. |
 
 ### test·run
 
-`t.run(subtest)` run .
+`t.run(subtest)` runs the function with a test instance as the first arg.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| subtest | func | Function to run as a subtest. |
+| subtest | function | Function to run as a subtest. |
 
 ### test·skip
 
@@ -80,11 +81,12 @@ func TestScript(t *testing.T) {
 ### test·equal
 
 `t.equal(a, b)` compares two values of the same type are equal.
+If the value is diffable it will report the difference between the two.
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| a | T | Value expected. |
-| b | T | Value given. |
+| a | value | Value expected. |
+| b | value | Value given. |
 
 ### test·not_equal
 
@@ -92,8 +94,8 @@ func TestScript(t *testing.T) {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| a | Value | Value expected. |
-| b | Value | Value given. |
+| a | value | Value expected. |
+| b | value | Value given. |
 
 ### test·less_than
 
@@ -101,8 +103,8 @@ func TestScript(t *testing.T) {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| a | Value | Value expected. |
-| b | Value | Value given. |
+| a | value | Value expected. |
+| b | value | Value given. |
 
 ### test·true
 
@@ -110,8 +112,8 @@ func TestScript(t *testing.T) {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| a | Value | Value expected to be truthy. |
-| msg | String | Message to report on falsyness. |
+| a | value | Value expected to be truthy. |
+| msg | string | Message to report on falsyness. |
 
 ### test·contains
 
@@ -119,10 +121,8 @@ func TestScript(t *testing.T) {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| a | Iterable | Iterable item. |
-| b | Value | Value expected. |
-
-| msg | any | Message to report on error. |
+| a | iterable | Iterable item. |
+| b | value | Value expected. |
 
 ### test·fails
 
@@ -130,7 +130,7 @@ func TestScript(t *testing.T) {
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| f | func | Value to run. |
+| f | function | value to run. |
 | pattern | string | Regex pattern to match. |
 
 

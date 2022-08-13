@@ -120,7 +120,7 @@ func teq(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 		if v, diffOk := x.(Diffable); diffOk {
 			str, err := v.DiffSameType(y)
 			if err != nil {
-				return True, err
+				return nil, err
 			}
 			t.Error(str)
 		} else {
