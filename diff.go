@@ -4,7 +4,6 @@ import "go.starlark.net/starlark"
 
 // A Diffable is a value that can report it's difference.
 type Diffable interface {
-	starlark.Value
 	starlark.Comparable
 
 	// DiffSameType compares a value of the same Type().
