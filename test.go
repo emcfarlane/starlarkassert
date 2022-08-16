@@ -44,12 +44,15 @@ var testAttrs = map[string]testAttr{
 	"run":    func(t *Test) starlark.Value { return method{t, "run", t.run} },
 	"skip":   func(t *Test) starlark.Value { return tmethod{t, "skip", t.t, tskip} },
 
-	"eq":       func(t *Test) starlark.Value { return tmethod{t, "eq", t.t, teq} },
-	"ne":       func(t *Test) starlark.Value { return tmethod{t, "ne", t.t, tne} },
-	"true":     func(t *Test) starlark.Value { return tmethod{t, "true", t.t, ttrue} },
-	"lt":       func(t *Test) starlark.Value { return tmethod{t, "lt", t.t, tlt} },
-	"contains": func(t *Test) starlark.Value { return tmethod{t, "contains", t.t, tcontains} },
-	"fails":    func(t *Test) starlark.Value { return tmethod{t, "fails", t.t, tfails} },
+	"eq":        func(t *Test) starlark.Value { return tmethod{t, "eq", t.t, teq} },
+	"equal":     func(t *Test) starlark.Value { return tmethod{t, "eq", t.t, teq} },
+	"ne":        func(t *Test) starlark.Value { return tmethod{t, "ne", t.t, tne} },
+	"not_equal": func(t *Test) starlark.Value { return tmethod{t, "ne", t.t, tne} },
+	"true":      func(t *Test) starlark.Value { return tmethod{t, "true", t.t, ttrue} },
+	"lt":        func(t *Test) starlark.Value { return tmethod{t, "lt", t.t, tlt} },
+	"less_than": func(t *Test) starlark.Value { return tmethod{t, "lt", t.t, tlt} },
+	"contains":  func(t *Test) starlark.Value { return tmethod{t, "contains", t.t, tcontains} },
+	"fails":     func(t *Test) starlark.Value { return tmethod{t, "fails", t.t, tfails} },
 }
 
 func (t *Test) Attr(name string) (starlark.Value, error) {
