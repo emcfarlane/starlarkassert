@@ -6,14 +6,14 @@ Package starlarkassert binds starlark scripts to go's testing framework.
 
 ```python
 # tests are prefixed with "test_"
-def test_are_prefix(t):
-    t.true(True)
-    print("here")
+def test_are_prefix(assert):
+    assert.true(True)
+    print("here")  # print formats in go's t.Log(...)
 
-# tests can run subtests with "t.run()"
-def test_subtest(t):
+# tests can run subtests with "assert.run()"
+def test_subtest(assert):
     for name in ["test", "names"]:
-        t.run(name, lambda t: print(name))
+        assert.run(name, lambda assert: print(name))
 ```
 
 ```python

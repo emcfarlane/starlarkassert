@@ -16,9 +16,8 @@ import (
 // Test is passed to starlark testing functions.
 // Interface is based on Go's *testing.T.
 //
-// 	def test_foo(t):
-// 	    ...check...
-//
+//	def test_foo(t):
+//	    ...check...
 type Test struct {
 	t      *testing.T
 	frozen bool
@@ -103,23 +102,16 @@ func (t *Test) run(thread *starlark.Thread, args starlark.Tuple, kwargs []starla
 		return nil, err
 	}
 
-	var (
-		val starlark.Value
-		err error
-	)
 	t.t.Run(name, func(t *testing.T) {
 		defer wrapLog(t, thread)()
 
 		tval := NewTest(t)
-		val, err = starlark.Call(thread, fn, starlark.Tuple{tval}, nil)
+		_, err := starlark.Call(thread, fn, starlark.Tuple{tval}, nil)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 	})
-	if err != nil {
-		return starlark.None, nil
-	}
-	return val, nil
+	return starlark.None, nil
 }
 
 func (t *Test) fatal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -239,11 +231,10 @@ func TestFile(t *testing.T, filename string, src interface{}, globals starlark.S
 // RunTests is a local test suite runner. Each file in the pattern glob is ran.
 // To use add it to a Test function:
 //
-// 	func TestStarlark(t *testing.T) {
-// 		globals := starlark.StringDict{}
-// 		RunTests(t, "testdata/*_test.star", globals)
-// 	}
-//
+//	func TestStarlark(t *testing.T) {
+//		globals := starlark.StringDict{}
+//		RunTests(t, "testdata/*_test.star", globals)
+//	}
 func RunTests(t *testing.T, pattern string, globals starlark.StringDict, opts ...TestOption) {
 	t.Helper()
 
