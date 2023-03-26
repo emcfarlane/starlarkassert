@@ -189,7 +189,17 @@ func WithLoad(load func(*starlark.Thread, string) (starlark.StringDict, error)) 
 	}
 }
 
-// TestFile runs each function with the prefix "test_" in parallel as a t.Run func.
+func InParallel(t testing.TB, _ *starlark.Thread) func() {
+	if t, ok := t.(*testing.T); ok {
+		t.Parallel()
+	}
+	return nil
+}
+
+var _ TestOption = InParallel
+
+// TestFile runs each function with the prefix "test_" as a t.Run func.
+// To run in parallel, use the InParallel option.
 func TestFile(t *testing.T, filename string, src interface{}, globals starlark.StringDict, opts ...TestOption) {
 	t.Helper()
 
@@ -212,8 +222,6 @@ func TestFile(t *testing.T, filename string, src interface{}, globals starlark.S
 
 		key, val := key, val
 		t.Run(key, func(t *testing.T) {
-			t.Parallel()
-
 			tt := NewTest(t)
 			name := thread.Name
 			thread, cleanup := newThread(t, name, opts)
