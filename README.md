@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/emcfarlane/starlarkassert.svg)](https://pkg.go.dev/github.com/emcfarlane/starlarkassert)
 
-Package starlarkassert binds starlark scripts to go's testing framework.
+Package starlarkassert binds starlark scripts to go's testing framework. Create tests in starlark files by prefixing starlark functions with `test_` that take one arg `t`. Each function will be bound to go's test runner. Set the test files in a root Go project and provide any global functions or methods to callback. Than run `go test` as usual.
 
 ```python
 # tests are prefixed with "test_"
@@ -33,6 +33,42 @@ func TestScript(t *testing.T) {
 	}
 	RunTests(t, "testdata/*.star", globals)
 }
+```
+
+Then run tests like you would with Go:
+```sh
+$ go test -v .
+=== RUN   TestRunTests
+=== RUN   TestRunTests/test_here
+    testdata/test.star:6:10 here
+=== RUN   TestRunTests/test_array
+    testdata/test.star:11:14 name: lord
+    testdata/test.star:11:14 name: of
+    testdata/test.star:11:14 name: the
+    testdata/test.star:11:14 name: rings
+=== RUN   TestRunTests/test_t_run
+=== RUN   TestRunTests/test_t_run/harry
+    testdata/test.star:16:36 harry
+=== RUN   TestRunTests/test_t_run/potter
+    testdata/test.star:16:36 potter
+=== RUN   TestRunTests/test_globals
+=== RUN   TestRunTests/test_globals_frozen
+=== RUN   TestRunTests/test_load
+    testdata/test.star:35:10 hello, world
+--- PASS: TestRunTests (0.00s)
+    --- PASS: TestRunTests/test_here (0.00s)
+    --- PASS: TestRunTests/test_array (0.00s)
+    --- PASS: TestRunTests/test_t_run (0.00s)
+        --- PASS: TestRunTests/test_t_run/harry (0.00s)
+        --- PASS: TestRunTests/test_t_run/potter (0.00s)
+    --- PASS: TestRunTests/test_globals (0.00s)
+    --- PASS: TestRunTests/test_globals_frozen (0.00s)
+    --- PASS: TestRunTests/test_load (0.00s)
+=== RUN   Test_depsInterface
+    testing_test.go:28: 
+--- SKIP: Test_depsInterface (0.00s)
+PASS
+ok  	github.com/emcfarlane/starlarkassert	(cached)
 ```
 
 ## test
