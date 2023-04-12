@@ -77,7 +77,8 @@ func terror(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, er
 	if err != nil {
 		return nil, err
 	}
-	t.Error(s)
+	thread.Print(thread, s)
+	t.Fail()
 	return True, nil
 }
 
@@ -95,7 +96,8 @@ func tfatal(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, er
 	if err != nil {
 		return nil, err
 	}
-	t.Fatal(s)
+	thread.Print(thread, s)
+	t.FailNow()
 	return True, nil
 }
 
@@ -107,7 +109,7 @@ func tfail(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	return True, nil
 }
 
-func teq(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func teq(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var x, y Value
 	if err := UnpackArgs("eq", args, kwargs, "x", &x, "y", &y); err != nil {
 		return nil, err
@@ -122,17 +124,18 @@ func teq(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			t.Error(str)
+			thread.Print(thread, str)
+			t.Fail()
 		} else {
-			t.Errorf(
-				"%s != %s", String(x.String()), String(y.String()),
-			)
+			str := fmt.Sprintf("%q != %q", x.String(), y.String())
+			thread.Print(thread, str)
+			t.Fail()
 		}
 	}
 	return Bool(ok), nil
 }
 
-func tne(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func tne(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var x, y Value
 	if err := UnpackArgs("ne", args, kwargs, "x", &x, "y", &y); err != nil {
 		return nil, err
@@ -142,14 +145,14 @@ func tne(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 		return nil, err
 	}
 	if ok {
-		t.Errorf(
-			"%s == %s", String(x.String()), String(y.String()),
-		)
+		str := fmt.Sprintf("%q != %q", x.String(), y.String())
+		thread.Print(thread, str)
+		t.Fail()
 	}
 	return Bool(!ok), nil
 }
 
-func ttrue(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func ttrue(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var (
 		cond Value
 		msg  string
@@ -158,12 +161,13 @@ func ttrue(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 		return nil, err
 	}
 	if !bool(cond.Truth()) {
-		t.Error(msg)
+		thread.Print(thread, msg)
+		t.Fail()
 	}
 	return cond.Truth(), nil
 }
 
-func tlt(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func tlt(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var x, y Value
 	if err := UnpackArgs("lt", args, kwargs, "x", &x, "y", &y); err != nil {
 		return nil, err
@@ -173,12 +177,14 @@ func tlt(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 		return nil, err
 	}
 	if !ok {
-		t.Errorf("%s is not less than %s", x, y)
+		msg := fmt.Sprintf("%s is not less than %s", x, y)
+		thread.Print(thread, msg)
+		t.Fail()
 	}
 	return Bool(ok), nil
 }
 
-func tcontains(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, error) {
+func tcontains(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, error) {
 	var (
 		x Iterable
 		y Value
@@ -199,7 +205,9 @@ func tcontains(t testing.TB, _ *Thread, args Tuple, kwargs []Tuple) (Value, erro
 			return True, nil
 		}
 	}
-	t.Errorf("%s does not contain %s", x, y)
+	msg := fmt.Sprintf("%s does not contain %s", x, y)
+	thread.Print(thread, msg)
+	t.Fail()
 	return False, nil
 }
 
@@ -214,7 +222,9 @@ func tfails(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, er
 
 	_, err := f.CallInternal(thread, nil, nil)
 	if err == nil {
-		t.Errorf("evaluation succeeded unexpectedly (want error matching %s)", String(pattern))
+		msg := fmt.Sprintf("evaluation succeeded unexpectedly (want error matching %s)", pattern)
+		thread.Print(thread, msg)
+		t.Fail()
 		return False, nil
 	}
 	str := err.Error()
@@ -224,7 +234,9 @@ func tfails(t testing.TB, thread *Thread, args Tuple, kwargs []Tuple) (Value, er
 	}
 
 	if !ok {
-		t.Errorf("regular expression (%s) did not match error (%s)", pattern, str)
+		msg := fmt.Sprintf("regular expression (%s) did not match error (%s)", pattern, str)
+		thread.Print(thread, msg)
+		t.Fail()
 	}
 	return Bool(ok), nil
 }
